@@ -37,7 +37,6 @@ module StarlingServer
     def initialize(persistence_path, queue_name, debug = false)
       @persistence_path = persistence_path
       @queue_name = queue_name
-      #@transaction_mutex = Mutex.new
       @total_items = 0
       super()
       @initial_bytes = replay_transaction_log(debug)
@@ -142,15 +141,10 @@ module StarlingServer
     def transaction(data) #:nodoc:
       raise "no transaction log handle. that totally sucks." unless @trx
 
-      #begin
-        #@transaction_mutex.lock
-        @trx.write data
-        @trx.fsync
-        @logsize += data.size
-        rotate_log if @logsize > SOFT_LOG_MAX_SIZE && self.length == 0
-      #ensure
-        #@transaction_mutex.unlock
-      #end
+      @trx.write data
+      @trx.fsync
+      @logsize += data.size
+      rotate_log if @logsize > SOFT_LOG_MAX_SIZE && self.length == 0
     end
   end
 end
