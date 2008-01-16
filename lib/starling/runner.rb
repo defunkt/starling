@@ -112,10 +112,8 @@ module StarlingServer
       setup_signal_traps
       @process.write_pid_file
 
-#      @server, @thread = StarlingServer::Base.start(options)
-#      @thread.join
-
-      @server = StarlingServer::Base.start(options)
+      @server, @thread = StarlingServer::Base.start(options)
+      @thread.join
 
       @process.remove_pid_file
     end

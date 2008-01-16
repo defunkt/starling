@@ -65,54 +65,47 @@ STAT queue_%s_expired_items %d\n".freeze
     ##
     # Process incoming commands from the attached client.
 
-    def run
-      if response = process_command
-        response
-      end
-    end
-
     def <<(data)
       @server.stats[:bytes_read] += data.size
       @data << data
     end
 
-    private
+    def run
+      # our only non-normal state is consuming an object's data 
+      # when @expected_length is present
+      if @expected_length && @data.size >= @expected_length
+        return set_data 
+      end
 
+      case @data
+      when SET_COMMAND
+        @server.stats[:set_requests] += 1
+        @data.slice!(0...$&.size)
+        set($1, $2, $3, $4.to_i)
+      when GET_COMMAND
+        @server.stats[:get_requests] += 1
+        @data.slice!(0...$&.size)
+        get($1)
+      when STATS_COMMAND
+        @data.slice!(0...$&.size)
+        stats
+      else
+        if unknown_command = @data.slice!(/^[^\r\n]*\r\n/m)
+          logger.warn "Unknown command: #{unknown_command}."
+          respond ERR_UNKNOWN_COMMAND
+        end
+      end
+    rescue => e
+      logger.error "Error handling request: #{e}."
+      logger.debug e.backtrace.join("\n")
+      respond GET_RESPONSE_EMPTY
+    end
+
+  private
     def respond(str, *args)
       response = sprintf(str, *args)
       @server.stats[:bytes_written] += response.length
       response
-    end
-
-    def process_command
-      begin
-        if @expected_length
-          set_data if @data.size >= @expected_length
-        else
-          case @data
-          when SET_COMMAND
-            @server.stats[:set_requests] += 1
-            @data.slice!(0...$&.size)
-            set($1, $2, $3, $4.to_i)
-          when GET_COMMAND
-            @server.stats[:get_requests] += 1
-            @data.slice!(0...$&.size)
-            get($1)
-          when STATS_COMMAND
-            @data.slice!(0...$&.size)
-            stats
-          else
-            if unknown_command = @data.slice!(/^[^\r\n]*\r\n/m)
-              logger.warn "Unknown command: #{unknown_command}."
-              respond ERR_UNKNOWN_COMMAND
-            end
-          end
-        end
-      rescue => e
-        logger.error "Error handling request: #{e}."
-        logger.debug e.backtrace.join("\n")
-        respond GET_RESPONSE_EMPTY
-      end
     end
 
     def set(key, flags, expiry, len)

@@ -73,7 +73,7 @@ module StarlingServer
 
       @logger.level = @opts[:log_level] || Logger::ERROR
 
-#      @acceptor = Thread.new do
+      @acceptor = Thread.new do
         EventMachine.run do
           EventMachine.epoll
           EventMachine.set_descriptor_table_size(4096)
@@ -82,9 +82,9 @@ module StarlingServer
 
           puts "Listening for howls on #{@opts[:port]}"
         end
-#      end
-#
-#      return @acceptor
+      end
+
+      return @acceptor
     end
 
     ##

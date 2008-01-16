@@ -4,8 +4,8 @@ module StarlingServer
       @opts = options
     end
 
-    def stats
-      @opts[:server].stats
+    def stats(*args)
+      @opts[:server].stats(*args)
     end
 
     def logger
@@ -21,22 +21,10 @@ module StarlingServer
 
     def receive_data(data)
       @handler << data
-      @retry = true
-      logger.info "== Received: #{data.inspect}"
 
       loop do
-        @last_activity = Time.now
-
         if response = @handler.run
-          logger.info "== Response: #{response.inspect}"
-          @last_activity = Time.now
           send_data response
-          break
-        elsif @retry
-          @retry = false
-          logger.info "== No Response"
-        else
-          logger.info "== No more retries"
           break
         end
       end
