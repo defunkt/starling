@@ -14,9 +14,9 @@ end
 class TestStarling < Test::Unit::TestCase
 
   def setup
-    @server, @acceptor = StarlingServer::Base.start(:host => '127.0.0.1',
-                                                    :port => 22133,
-                                                    :path => tmp_path)
+    @server = StarlingServer::Base.start(:host => '127.0.0.1',
+                                         :port => 22133,
+                                         :path => tmp_path)
 
     @client = MemCache.new('127.0.0.1:22133')
   end

@@ -1,5 +1,6 @@
 require 'socket'
 require 'logger'
+require 'rubygems'
 require 'eventmachine'
 
 here = File.dirname(__FILE__)
@@ -10,10 +11,10 @@ require File.join(here, 'handler')
 
 module StarlingServer
 
-  VERSION = "0.9.3"
+  VERSION = "0.9.4"
 
   class Base
-    attr_reader :logger, :stats
+    attr_reader :logger
 
     DEFAULT_HOST    = '127.0.0.1'
     DEFAULT_PORT    = 22122
@@ -37,8 +38,7 @@ module StarlingServer
     
     def self.start(opts = {})
       server = self.new(opts)
-      acceptor = server.run
-      [server, acceptor]
+      server.run
     end
 
     ##
@@ -73,18 +73,14 @@ module StarlingServer
 
       @logger.level = @opts[:log_level] || Logger::ERROR
 
-      @acceptor = Thread.new do
-        EventMachine.run do
-          EventMachine.epoll
-          EventMachine.set_descriptor_table_size(4096)
+      EventMachine.run do
+        EventMachine.epoll
+        EventMachine.set_descriptor_table_size(4096)
 
-          EventMachine.start_server(@opts[:host], @opts[:port], Protocol, @opts)
+        EventMachine.start_server(@opts[:host], @opts[:port], Protocol, @opts)
 
-          puts "Listening for howls on #{@opts[:port]}"
-        end
+        puts "Listening for howls on #{@opts[:port]}"
       end
-
-      return @acceptor
     end
 
     ##
