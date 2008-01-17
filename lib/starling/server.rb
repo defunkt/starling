@@ -5,7 +5,6 @@ require 'eventmachine'
 
 here = File.dirname(__FILE__)
 
-require File.join(here, 'connection')
 require File.join(here, 'queue_collection')
 require File.join(here, 'handler')
 
@@ -77,7 +76,7 @@ module StarlingServer
         EventMachine.epoll
         EventMachine.set_descriptor_table_size(4096)
 
-        EventMachine.start_server(@opts[:host], @opts[:port], Protocol, @opts)
+        EventMachine.start_server(@opts[:host], @opts[:port], Handler, @opts)
 
         puts "Listening for howls on #{@opts[:port]}"
       end

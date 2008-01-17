@@ -5,7 +5,7 @@ module StarlingServer
   # MemCache protocol and act as an interface between the Server and the
   # QueueCollection.
   
-  class Handler
+  class Handler < EventMachine::Connection
 
     DATA_PACK_FMT = "Ia*".freeze
 
@@ -53,13 +53,8 @@ STAT queue_%s_expired_items %d\n".freeze
     # Creates a new handler for the MemCache protocol that communicates with a
     # given client.
 
-    def initialize(server, queue_collection)
-      @data = ""
-      @server = server
-      @queue_collection = queue_collection
-      @expiry_stats = Hash.new(0)
-      @expected_length = nil
-      @stash = []
+    def initialize(options = {})
+      @opts = options
     end
 
     ##
@@ -68,6 +63,32 @@ STAT queue_%s_expired_items %d\n".freeze
     def <<(data)
       @server.stats[:bytes_read] += data.size
       @data << data
+    end
+
+    def post_init
+      @stash = []
+      @data = ""
+      @server = @opts[:server]
+      @expiry_stats = Hash.new(0)
+      @expected_length = nil
+      @server.stats[:total_connections] += 1
+      set_comm_inactivity_timeout @opts[:timeout]
+      @queue_collection = QueueCollection.new(@opts[:path])
+    end
+
+    def receive_data(data)
+      self << data
+
+      loop do
+        if response = run
+          send_data response
+          break
+        end
+      end
+    end
+
+    def unbind 
+      @queue_collection.close
     end
 
     def run
