@@ -97,12 +97,11 @@ class TestStarling < Test::Unit::TestCase
   end
 
   def test_funknown_command_returns_valid_result
+    @client.set('blah', 'blah')
     response = @client.add('blah', 1)
     assert_match 'CLIENT_ERROR', response
-    response = @client.add('blah', 2)
-    assert_match 'CLIENT_ERROR', response
     response = @client.get('blah')
-    assert response.nil?
+    assert_equal 'blah', response
   end
 
   def test_disconnecting_and_reconnecting_works

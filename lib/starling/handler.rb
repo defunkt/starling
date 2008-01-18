@@ -13,18 +13,18 @@ module StarlingServer
     ERR_UNKNOWN_COMMAND = "CLIENT_ERROR bad command line format\r\n".freeze
 
     # GET Responses
-    GET_COMMAND = /^get (.{1,250})\r\n/m
+    GET_COMMAND = /\Aget (.{1,250})\r\n/m
     GET_RESPONSE       = "VALUE %s %s %s\r\n%s\r\nEND\r\n".freeze
     GET_RESPONSE_EMPTY = "END\r\n".freeze
 
     # SET Responses
-    SET_COMMAND = /^set (.{1,250}) ([0-9]+) ([0-9]+) ([0-9]+)\r\n/m
+    SET_COMMAND = /\Aset (.{1,250}) ([0-9]+) ([0-9]+) ([0-9]+)\r\n/m
     SET_RESPONSE_SUCCESS  = "STORED\r\n".freeze
     SET_RESPONSE_FAILURE  = "NOT STORED\r\n".freeze
     SET_CLIENT_DATA_ERROR = "CLIENT_ERROR bad data chunk\r\nERROR\r\n".freeze
 
     # STAT Response
-    STATS_COMMAND = /^stats\r\n/m
+    STATS_COMMAND = /\Astats\r\n/m
     STATS_RESPONSE = "STAT pid %d
 STAT uptime %d
 STAT time %d
@@ -74,6 +74,8 @@ STAT queue_%s_expired_items %d\n".freeze
     def receive_data(data)
       @server.stats[:bytes_read] += data.size
       @data << data
+      puts "data  : #{data.inspect}"
+      puts "buffer: #{@data.inspect}"
 
       while @data =~ /\r\n/
         response = process
