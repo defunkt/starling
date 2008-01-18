@@ -26,8 +26,9 @@ class TestStarling < Test::Unit::TestCase
   end
 
   def teardown
+    sleep 0.01
     @server.stop
-    @client = nil
+    @client.reset
     FileUtils.rm_f(File.join(tmp_path, '*'))
     sleep 0.01
   end
@@ -45,67 +46,71 @@ class TestStarling < Test::Unit::TestCase
     assert_equal v, @client.get('test_set_and_get_one_entry')
   end
 
-#  def test_set_with_expiry
-#    v = rand((2**32)-1)
-#    assert_equal nil, @client.get('test_set_with_expiry')
-#    now = Time.now.to_i
-#    @client.set('test_set_with_expiry', v + 2, now)
-#    @client.set('test_set_with_expiry', v)
-#    sleep(now + 1 - Time.now.to_f)
-#    assert_equal v, @client.get('test_set_with_expiry')
-#  end
-#
-#  def test_log_rotation
-#    log_rotation_path = File.join(tmp_path, 'test_log_rotation')
-#
-#    Dir.glob("#{log_rotation_path}*").each do |file|
-#      File.unlink(file) rescue nil
-#    end
-#    assert_equal nil, @client.get('test_log_rotation')
-#
-#    v = 'x' * 8192
-#
-#    @client.set('test_log_rotation', v)
-#    assert_equal 8207, File.size(log_rotation_path)
-#    @client.get('test_log_rotation')
-#
-#    assert_equal nil, @client.get('test_log_rotation')
-#
-#    @client.set('test_log_rotation', v)
-#    assert_equal v, @client.get('test_log_rotation')
-#
-#    assert_equal 1, File.size(log_rotation_path)
-#    assert_equal 2, Dir.glob("#{log_rotation_path}*").size
-#  end
-#
-#  def test_stats
-#    stats = @client.stats
-#    assert_kind_of Hash, stats
-#    assert stats.has_key?('127.0.0.1:22133')
-#    
-#    server_stats = stats['127.0.0.1:22133']
-#    
-#    basic_stats = %w( bytes pid time limit_maxbytes cmd_get version
-#                      bytes_written cmd_set get_misses total_connections
-#                      curr_connections curr_items uptime get_hits total_items
-#                      rusage_system rusage_user bytes_read )
-#
-#    basic_stats.each do |stat|
-#      assert server_stats.has_key?(stat)
-#    end
-#  end
-#
-#  def test_unknown_command_returns_valid_result
-#    response = @client.add('blah', 1)
-#    assert_match 'CLIENT_ERROR', response
-#  end
+  def test_set_with_expiry
+    v = rand((2**32)-1)
+    assert_equal nil, @client.get('test_set_with_expiry')
+    now = Time.now.to_i
+    @client.set('test_set_with_expiry', v + 2, now)
+    @client.set('test_set_with_expiry', v)
+    sleep(now + 1 - Time.now.to_f)
+    assert_equal v, @client.get('test_set_with_expiry')
+  end
 
-#  def test_that_disconnecting_and_reconnecting_works
-#    v = rand(2**32-1)
-#    @client.set('test_that_disconnecting_and_reconnecting_works', v)
-#    @client.reset
-#    assert_equal v, @client.get('test_that_disconnecting_and_reconnecting_works')
-#  end
+  def test_log_rotation
+    log_rotation_path = File.join(tmp_path, 'test_log_rotation')
+
+    Dir.glob("#{log_rotation_path}*").each do |file|
+      File.unlink(file) rescue nil
+    end
+    assert_equal nil, @client.get('test_log_rotation')
+
+    v = 'x' * 8192
+
+    @client.set('test_log_rotation', v)
+    assert_equal 8207, File.size(log_rotation_path)
+    @client.get('test_log_rotation')
+
+    assert_equal nil, @client.get('test_log_rotation')
+
+    @client.set('test_log_rotation', v)
+    assert_equal v, @client.get('test_log_rotation')
+
+    assert_equal 1, File.size(log_rotation_path)
+    assert_equal 2, Dir.glob("#{log_rotation_path}*").size
+  end
+
+  def test_stats
+    stats = @client.stats
+    assert_kind_of Hash, stats
+    assert stats.has_key?('127.0.0.1:22133')
+    
+    server_stats = stats['127.0.0.1:22133']
+    
+    basic_stats = %w( bytes pid time limit_maxbytes cmd_get version
+                      bytes_written cmd_set get_misses total_connections
+                      curr_connections curr_items uptime get_hits total_items
+                      rusage_system rusage_user bytes_read )
+
+    basic_stats.each do |stat|
+      assert server_stats.has_key?(stat)
+    end
+  end
+
+  def test_funknown_command_returns_valid_result
+    response = @client.add('blah', 1)
+    assert_match 'CLIENT_ERROR', response
+    response = @client.add('blah', 2)
+    assert_match 'CLIENT_ERROR', response
+    response = @client.get('blah')
+    assert response.nil?
+  end
+
+  def test_disconnecting_and_reconnecting_works
+    v = rand(2**32-1)
+    @client.set('test_that_disconnecting_and_reconnecting_works', v)
+    @client.reset
+    assert_equal v, @client.get('test_that_disconnecting_and_reconnecting_works')
+  end
 
   private
 
