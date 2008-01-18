@@ -1,0 +1,2 @@
+#!/bin/sh
+ruby -rubygems -I ../lib/ ../bin/starling -P /tmp/starling.pid -q /tmp/starling
