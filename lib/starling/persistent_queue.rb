@@ -1,9 +1,3 @@
-if RUBY_VERSION >= "1.8.6"
-  require 'thread'
-else
-  require 'fastthread'
-end
-
 module StarlingServer
 
   ##
@@ -77,8 +71,6 @@ module StarlingServer
     # Safely closes the transactional queue.
     
     def close
-      #@transaction_mutex.lock
-
       # Ok, yeah, this is lame, and is *technically* a race condition. HOWEVER,
       # the QueueCollection *should* have stopped processing requests, and I don't
       # want to add yet another Mutex around all the push and pop methods. So we

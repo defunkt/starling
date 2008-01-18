@@ -13,18 +13,18 @@ module StarlingServer
     ERR_UNKNOWN_COMMAND = "CLIENT_ERROR bad command line format\r\n".freeze
 
     # GET Responses
-    GET_COMMAND = /^get (.{1,250})\r\n/
+    GET_COMMAND = /^get (.{1,250})\r\n/m
     GET_RESPONSE       = "VALUE %s %s %s\r\n%s\r\nEND\r\n".freeze
     GET_RESPONSE_EMPTY = "END\r\n".freeze
 
     # SET Responses
-    SET_COMMAND = /^set (.{1,250}) ([0-9]+) ([0-9]+) ([0-9]+)\r\n/
+    SET_COMMAND = /^set (.{1,250}) ([0-9]+) ([0-9]+) ([0-9]+)\r\n/m
     SET_RESPONSE_SUCCESS  = "STORED\r\n".freeze
     SET_RESPONSE_FAILURE  = "NOT STORED\r\n".freeze
     SET_CLIENT_DATA_ERROR = "CLIENT_ERROR bad data chunk\r\nERROR\r\n".freeze
 
     # STAT Response
-    STATS_COMMAND = /^stats\r\n/
+    STATS_COMMAND = /^stats\r\n/m
     STATS_RESPONSE = "STAT pid %d
 STAT uptime %d
 STAT time %d
@@ -60,11 +60,6 @@ STAT queue_%s_expired_items %d\n".freeze
     ##
     # Process incoming commands from the attached client.
 
-    def <<(data)
-      @server.stats[:bytes_read] += data.size
-      @data << data
-    end
-
     def post_init
       @stash = []
       @data = ""
@@ -77,25 +72,27 @@ STAT queue_%s_expired_items %d\n".freeze
     end
 
     def receive_data(data)
-      self << data
+      @server.stats[:bytes_read] += data.size
+      @data << data
 
-      loop do
-        if response = run
-          send_data response
-          break
-        end
+      while @data =~ /\r\n/
+        response = process
       end
+
+      send_data response if response
     end
 
     def unbind 
       @queue_collection.close
     end
 
-    def run
+    def process
       # our only non-normal state is consuming an object's data 
       # when @expected_length is present
       if @expected_length && @data.size >= @expected_length
-        return set_data 
+        return set_data
+      elsif @expected_length
+        return
       end
 
       case @data
@@ -132,7 +129,7 @@ STAT queue_%s_expired_items %d\n".freeze
     def set(key, flags, expiry, len)
       @expected_length = len + 2
       @stash = [ key, flags, expiry ]
-      nil
+      process
     end
 
     def set_data

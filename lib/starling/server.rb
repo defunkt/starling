@@ -75,10 +75,7 @@ module StarlingServer
       EventMachine.run do
         EventMachine.epoll
         EventMachine.set_descriptor_table_size(4096)
-
         EventMachine.start_server(@opts[:host], @opts[:port], Handler, @opts)
-
-        puts "Listening for howls on #{@opts[:port]}"
       end
     end
 

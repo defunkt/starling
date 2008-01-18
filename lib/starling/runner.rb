@@ -112,8 +112,9 @@ module StarlingServer
       setup_signal_traps
       @process.write_pid_file
 
-      @server, @thread = StarlingServer::Base.start(options)
-      @thread.join
+      STDOUT.puts "Starting at #{options[:host]}:#{options[:port]}."
+      @server = StarlingServer::Base.new(options)
+      @server.run
 
       @process.remove_pid_file
     end
