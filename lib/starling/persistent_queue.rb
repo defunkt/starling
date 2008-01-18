@@ -133,8 +133,8 @@ module StarlingServer
     def transaction(data) #:nodoc:
       raise "no transaction log handle. that totally sucks." unless @trx
 
-      @trx.write data
-      @trx.fsync
+      @trx.write_nonblock data
+#      @trx.fsync
       @logsize += data.size
       rotate_log if @logsize > SOFT_LOG_MAX_SIZE && self.length == 0
     end
