@@ -71,14 +71,14 @@ STAT queue_%s_expired_items %d\n".freeze
       @queue_collection = QueueCollection.new(@opts[:path])
     end
 
-    def receive_data(data)
-      @server.stats[:bytes_read] += data.size
-      @data << data
-      puts "data  : #{data.inspect}"
-      puts "buffer: #{@data.inspect}"
+    def receive_data(incoming)
+      @server.stats[:bytes_read] += incoming.size
+      @data << incoming
+#      puts "data  : #{incoming.inspect}"
+#      puts "buffer: #{@data.inspect}"
 
-      while @data =~ /\r\n/
-        response = process
+      while data = @data.slice!(/.*?\r\n/m)
+        response = process(data)
       end
 
       send_data response if response
@@ -88,32 +88,27 @@ STAT queue_%s_expired_items %d\n".freeze
       @queue_collection.close
     end
 
-    def process
+    def process(data)
       # our only non-normal state is consuming an object's data 
       # when @expected_length is present
-      if @expected_length && @data.size >= @expected_length
-        return set_data
+      if @expected_length && data.size >= @expected_length
+        return set_data(data)
       elsif @expected_length
         return
       end
 
-      case @data
+      case data
       when SET_COMMAND
         @server.stats[:set_requests] += 1
-        @data.slice!(0...$&.size)
         set($1, $2, $3, $4.to_i)
       when GET_COMMAND
         @server.stats[:get_requests] += 1
-        @data.slice!(0...$&.size)
         get($1)
       when STATS_COMMAND
-        @data.slice!(0...$&.size)
         stats
       else
-        if unknown_command = @data.slice!(/^[^\r\n]*\r\n/m)
-          logger.warn "Unknown command: #{unknown_command}."
-          respond ERR_UNKNOWN_COMMAND
-        end
+        logger.warn "Unknown command: #{data}."
+        respond ERR_UNKNOWN_COMMAND
       end
     rescue => e
       logger.error "Error handling request: #{e}."
@@ -131,17 +126,17 @@ STAT queue_%s_expired_items %d\n".freeze
     def set(key, flags, expiry, len)
       @expected_length = len + 2
       @stash = [ key, flags, expiry ]
-      process
+      nil
     end
 
-    def set_data
+    def set_data(incoming)
       key, flags, expiry = @stash
       len = @expected_length - 2
       @stash = []
       @expected_length = nil
 
-      data     = @data.slice!(0...len)
-      data_end = @data.slice!(0...2)
+      data     = incoming.slice!(0...len)
+      data_end = incoming.slice!(0...2)
 
       if data_end == "\r\n" && data.size == len
         internal_data = [expiry.to_i, data].pack(DATA_PACK_FMT)

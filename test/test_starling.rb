@@ -106,9 +106,9 @@ class TestStarling < Test::Unit::TestCase
 
   def test_disconnecting_and_reconnecting_works
     v = rand(2**32-1)
-    @client.set('test_that_disconnecting_and_reconnecting_works', v)
+    @client.set('test_disconnecting_and_reconnecting_works', v)
     @client.reset
-    assert_equal v, @client.get('test_that_disconnecting_and_reconnecting_works')
+    assert_equal v, @client.get('test_disconnecting_and_reconnecting_works')
   end
 
   private
