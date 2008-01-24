@@ -13,7 +13,7 @@ module StarlingServer
     ERR_UNKNOWN_COMMAND = "CLIENT_ERROR bad command line format\r\n".freeze
 
     # GET Responses
-    GET_COMMAND = /\Aget (.{1,250})\r\n/m
+    GET_COMMAND = /\Aget (.{1,250})\s*\r\n/m
     GET_RESPONSE       = "VALUE %s %s %s\r\n%s\r\nEND\r\n".freeze
     GET_RESPONSE_EMPTY = "END\r\n".freeze
 
@@ -74,8 +74,6 @@ STAT queue_%s_expired_items %d\n".freeze
     def receive_data(incoming)
       @server.stats[:bytes_read] += incoming.size
       @data << incoming
-#      puts "data  : #{incoming.inspect}"
-#      puts "buffer: #{@data.inspect}"
 
       while data = @data.slice!(/.*?\r\n/m)
         response = process(data)
@@ -91,7 +89,7 @@ STAT queue_%s_expired_items %d\n".freeze
     def process(data)
       # our only non-normal state is consuming an object's data 
       # when @expected_length is present
-      if @expected_length && data.size >= @expected_length
+      if @expected_length && data.size == @expected_length
         return set_data(data)
       elsif @expected_length
         return
@@ -131,22 +129,15 @@ STAT queue_%s_expired_items %d\n".freeze
 
     def set_data(incoming)
       key, flags, expiry = @stash
-      len = @expected_length - 2
+      data = incoming.slice(0...@expected_length)
       @stash = []
       @expected_length = nil
 
-      data     = incoming.slice!(0...len)
-      data_end = incoming.slice!(0...2)
-
-      if data_end == "\r\n" && data.size == len
-        internal_data = [expiry.to_i, data].pack(DATA_PACK_FMT)
-        if @queue_collection.put(key, internal_data)
-          respond SET_RESPONSE_SUCCESS
-        else
-          respond SET_RESPONSE_FAILURE
-        end
+      internal_data = [expiry.to_i, data].pack(DATA_PACK_FMT)
+      if @queue_collection.put(key, internal_data)
+        respond SET_RESPONSE_SUCCESS
       else
-        respond SET_CLIENT_DATA_ERROR
+        respond SET_RESPONSE_FAILURE
       end
     end
 
