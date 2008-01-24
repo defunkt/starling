@@ -1,5 +1,7 @@
 threads = []
 
+`rm /tmp/starling/*`
+
 5.times do
   threads << Thread.new { puts `ruby speed_test.rb` }
 end
