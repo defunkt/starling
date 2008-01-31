@@ -125,7 +125,7 @@ STAT queue_%s_expired_items %d\n".freeze
 
     def set_data(incoming)
       key, flags, expiry = @stash
-      data = incoming.slice(0...@expected_length)
+      data = incoming.slice(0...@expected_length-2)
       @stash = []
       @expected_length = nil
 
