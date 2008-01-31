@@ -68,7 +68,7 @@ STAT queue_%s_expired_items %d\n".freeze
       @expected_length = nil
       @server.stats[:total_connections] += 1
       set_comm_inactivity_timeout @opts[:timeout]
-      @queue_collection = QueueCollection.new(@opts[:path])
+      @queue_collection = @opts[:queue]
     end
 
     def receive_data(incoming)
@@ -80,10 +80,6 @@ STAT queue_%s_expired_items %d\n".freeze
       end
 
       send_data response if response
-    end
-
-    def unbind 
-      @queue_collection.close
     end
 
     def process(data)

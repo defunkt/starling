@@ -70,6 +70,7 @@ module StarlingServer
       else; Logger.new(STDERR)
       end
 
+      @opts[:queue] = QueueCollection.new(@opts[:path])
       @logger.level = @opts[:log_level] || Logger::ERROR
 
       EventMachine.run do
@@ -83,6 +84,7 @@ module StarlingServer
     # Stop accepting new connections and shutdown gracefully.
 
     def stop
+      @opts[:queue].close
       EventMachine.stop_event_loop
     end
 
